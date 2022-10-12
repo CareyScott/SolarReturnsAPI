@@ -62,7 +62,7 @@ app.post("/login", login);
 // app.post('/editUser', editUser)
 
 app.get("/solar", solar_request);
-app.get("/solardata", data_extraction_sum);
+app.post("/solardata", data_extraction_sum);
 // app.get("/solarpayback", simplePayback);
 
 app.listen(port, () => {
