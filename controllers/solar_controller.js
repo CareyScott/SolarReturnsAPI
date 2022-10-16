@@ -192,3 +192,14 @@ module.exports = {
   solar_request,
   data_extraction_sum,
 };
+
+
+// Adding all of your changes to the github commit
+// git add . 
+
+
+//Committing && adding a message to the working branch
+// git commit -m "YOUR MESSAGE HERE"
+
+//Pushing to repository
+// git push -u origin main
