@@ -21,7 +21,7 @@ const solar_request = async (req, res) => {
           loss: req.body.loss_in,
           fixed: 1,
           angle: req.body.angle_in,
-          aspect: req.body.aspect_in,
+          aspect: req.body.aspect_in-180,
           outputformat: "json",
         },
       })
