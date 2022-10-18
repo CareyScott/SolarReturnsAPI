@@ -203,3 +203,5 @@ module.exports = {
 
 //Pushing to repository
 // git push -u origin main
+
+//git push azure main:master
