@@ -23,6 +23,7 @@ const {
 const {
   solar_request,
   data_extraction_sum,
+  // data_extraction_sum_the_second,
   // simplePayback,
 } = require("./controllers/solar_controller");
 
@@ -61,8 +62,9 @@ app.post("/register", register);
 app.post("/login", login);
 // app.post('/editUser', editUser)
 
-app.get("/solar", solar_request);
+// app.get("/solar", solar_request);
 app.post("/solardata", data_extraction_sum);
+// app.post("/solardata2", data_extraction_sum_the_second);
 // app.get("/solarpayback", simplePayback);
 
 app.listen(port, () => {
