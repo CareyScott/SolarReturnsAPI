@@ -6,7 +6,8 @@ console.log(req);
 
 let solarRequestData;
 
-const solar_request = async (req, res) => {
+const solar_request = async (req, res, aspect, roofRatio) => {
+  roof_peakpower = req.body.peakpower*roofRatio;
   try {
     res = await axios
       .get("https://re.jrc.ec.europa.eu/api/v5_2/PVcalc", {
@@ -15,13 +16,13 @@ const solar_request = async (req, res) => {
           lon: req.body.lon_in,
           usehorizon: 1,
           raddatabase: "PVGIS-SARAH",
-          peakpower: req.body.peakpower,
+          peakpower: roof_peakpower,
           pvtechchoice: "crystSi",
           mountingplace: "building",
           loss: req.body.loss_in,
           fixed: 1,
           angle: req.body.angle_in,
-          aspect: req.body.aspect_in-180,
+          aspect: aspect-180,
           outputformat: "json",
         },
       })
@@ -36,8 +37,66 @@ const solar_request = async (req, res) => {
 
 // Function to calculate all key outputs
 const data_extraction_sum = async (req, res) => {
-  let solar_request_data = await solar_request(req, res);
+  console.log(typeof(req.body.double_roof));
+  if (req.body.double_roof === "false"){
+    aspect = req.body.aspect_in1;
+    let solar_request_data = await solar_request(req, res, aspect, 1);
 
+    // Find annual production
+    // Extract Useful Data (month and production) from json of solar production
+    let newArray = solar_request_data.outputs.monthly.fixed.map(
+      ({ month, E_m }) => ({ month, E_m })
+    );
+
+    var initial_prod = 0;
+    var monthly_production = [];
+    for (let i = 0; i < newArray.length; i++) {
+      monthly_production[i] = Math.round(Number(newArray[i].E_m) * 100) / 100;
+      initial_prod =
+        Math.round((initial_prod + Number(newArray[i].E_m)) * 100) / 100;
+    }
+  } else {
+    aspect = req.body.aspect_in1;
+    roofRatio1 = req.body.roof1_numberpanels/(req.body.roof1_numberpanels+req.body.roof2_numberpanels);
+    let solar_request_data1 = await solar_request(req, res, aspect, roofRatio1);
+    aspect = req.body.aspect_in2;
+    roofRatio2 = 1-roofRatio1;
+    let solar_request_data2 = await solar_request(req, res, aspect, roofRatio2);
+
+    // Find annual production for roof 1
+    // Extract Useful Data (month and production) from json of solar production
+    let newArray1 = solar_request_data1.outputs.monthly.fixed.map(
+      ({ month, E_m }) => ({ month, E_m })
+    );
+    var initial_prod1 = 0;
+    var monthly_production1 = [];
+    for (let i = 0; i < newArray1.length; i++) {
+      monthly_production1[i] = Math.round(Number(newArray1[i].E_m) * 100) / 100;
+      initial_prod1 =
+        Math.round((initial_prod1 + Number(newArray1[i].E_m)) * 100) / 100;
+    }
+
+    // Find annual production for roof 2
+    // Extract Useful Data (month and production) from json of solar production
+    let newArray2 = solar_request_data2.outputs.monthly.fixed.map(
+      ({ month, E_m }) => ({ month, E_m })
+    );
+    var initial_prod2 = 0;
+    var monthly_production2 = [];
+    for (let i = 0; i < newArray2.length; i++) {
+      monthly_production2[i] = Math.round(Number(newArray2[i].E_m) * 100) / 100;
+      initial_prod2 =
+        Math.round((initial_prod2 + Number(newArray2[i].E_m)) * 100) / 100;
+    }
+    // add roof 1 and roof 2 pieces together
+    var initial_prod = 0;
+    var monthly_production = [];
+    for (let i = 0; i < monthly_production1.length; i++) {
+      monthly_production[i] = Math.round((monthly_production1[i]+monthly_production2[i])*100)/100;
+    }
+    initial_prod = initial_prod1+initial_prod2;
+
+  }
   // Define Variables For Financial Calculations
   var daily_energy_usage = Number(req.body.daily_energy_usage);
   var self_consumption = Number(req.body.self_consumption);
@@ -54,20 +113,6 @@ const data_extraction_sum = async (req, res) => {
   var current_elec_sale_price = Number(req.body.current_elec_sale_price);
 
   // console.log(panel_degradation_rate);
-
-  // Find annual production
-  // Extract Useful Data (month and production) from json of solar production
-  let newArray = solar_request_data.outputs.monthly.fixed.map(
-    ({ month, E_m }) => ({ month, E_m })
-  );
-
-  var initial_prod = 0;
-  var monthly_production = [];
-  for (let i = 0; i < newArray.length; i++) {
-    monthly_production[i] = Math.round(Number(newArray[i].E_m) * 100) / 100;
-    initial_prod =
-      Math.round((initial_prod + Number(newArray[i].E_m)) * 100) / 100;
-  }
 
   // Calculate annual production including panel degration
   var annual_prod = new Array(system_life);
@@ -205,3 +250,30 @@ module.exports = {
 // git push -u origin main
 
 //git push azure main:master
+
+// New json inputs required from frontend for two roof selection to work. 
+/* {
+	"lat_in":"53.255",
+		"lon_in":"-6.175",
+		"peakpower":"3.04",
+		"loss_in":"14",
+		"angle_in":"80",
+		"double_roof":"true",
+		"aspect_in1":"275",
+		"roof1_numberpanels":"4",
+		"aspect_in2":"180",
+		"roof2_numberpanels":"4",
+		"panel_degradation_rate":"0.005",
+		"daily_energy_usage":"13",
+		"self_consumption":"0.65",
+		"system_cost_inc_grant":"3850",
+	"system_life":"25",
+	"inverter_life":"10",
+	"inverter_cost":"400",
+	"discount_rate":"0.04",
+	"inflation_rate":"0.02",
+	"elec_price_increase_rate":"0.005",
+	"current_day_elec_price":"0.29",
+	"current_night_elec_price":"0.15",
+	"current_elec_sale_price":"0.14"
+} */
